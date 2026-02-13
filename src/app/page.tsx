@@ -1,65 +1,338 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  CATEGORY_ICONS, 
+  CATEGORY_LABELS, 
+  CYCLE_LABELS,
+  type Bill, 
+  type BillCategory 
+} from "@/types";
+import { format, differenceInDays, addDays, isBefore, isAfter } from "date-fns";
+import { Plus, Calendar, LayoutDashboard, TrendingUp, Settings } from "lucide-react";
+import { AddBillDialog } from "@/components/add-bill-dialog";
+import { BillCard } from "@/components/bill-card";
+
+// Demo data - replace with real data from API
+const DEMO_BILLS: Bill[] = [
+  {
+    id: "1",
+    householdId: "1",
+    category: "electricity",
+    provider: "AGL",
+    amount: 285.50,
+    billingCycle: "quarterly",
+    dueDate: addDays(new Date(), 5),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "2",
+    householdId: "1",
+    category: "gas",
+    provider: "AGL",
+    amount: 95.00,
+    billingCycle: "quarterly",
+    dueDate: addDays(new Date(), 5),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "3",
+    householdId: "1",
+    category: "internet",
+    provider: "Telstra",
+    amount: 99.00,
+    billingCycle: "monthly",
+    dueDate: addDays(new Date(), 12),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "4",
+    householdId: "1",
+    category: "water",
+    provider: "Sydney Water",
+    amount: 180.00,
+    billingCycle: "quarterly",
+    dueDate: addDays(new Date(), 28),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "5",
+    householdId: "1",
+    category: "mobile",
+    provider: "Woolworths Mobile",
+    amount: 35.00,
+    billingCycle: "monthly",
+    dueDate: addDays(new Date(), 8),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "6",
+    householdId: "1",
+    category: "mobile",
+    provider: "Telstra",
+    description: "Line 2",
+    amount: 65.00,
+    billingCycle: "monthly",
+    dueDate: addDays(new Date(), 15),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "7",
+    householdId: "1",
+    category: "health_insurance",
+    provider: "GU Health",
+    amount: 320.00,
+    billingCycle: "monthly",
+    dueDate: addDays(new Date(), 3),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "8",
+    householdId: "1",
+    category: "car_insurance",
+    provider: "AAMI",
+    amount: 85.00,
+    billingCycle: "monthly",
+    dueDate: addDays(new Date(), 20),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "9",
+    householdId: "1",
+    category: "roadside",
+    provider: "NRMA",
+    amount: 199.00,
+    billingCycle: "yearly",
+    dueDate: addDays(new Date(), 45),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "10",
+    householdId: "1",
+    category: "subscription",
+    provider: "Netflix",
+    amount: 22.99,
+    billingCycle: "monthly",
+    dueDate: addDays(new Date(), 10),
+    isAutoPay: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
+function getDaysUntilDue(dueDate: Date): number {
+  return differenceInDays(dueDate, new Date());
+}
+
+function getUrgencyColor(daysUntil: number): string {
+  if (daysUntil < 0) return "bg-red-500";
+  if (daysUntil <= 3) return "bg-orange-500";
+  if (daysUntil <= 7) return "bg-yellow-500";
+  return "bg-green-500";
+}
+
+function calculateMonthlyEquivalent(amount: number, cycle: string): number {
+  switch (cycle) {
+    case "weekly": return amount * 4.33;
+    case "fortnightly": return amount * 2.17;
+    case "monthly": return amount;
+    case "quarterly": return amount / 3;
+    case "yearly": return amount / 12;
+    default: return amount;
+  }
+}
 
 export default function Home() {
+  const [bills, setBills] = useState<Bill[]>(DEMO_BILLS);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const sortedBills = [...bills].sort(
+    (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+  );
+
+  const upcomingBills = sortedBills.filter(
+    (bill) => getDaysUntilDue(bill.dueDate) >= 0 && getDaysUntilDue(bill.dueDate) <= 14
+  );
+
+  const totalMonthly = bills.reduce(
+    (sum, bill) => sum + calculateMonthlyEquivalent(bill.amount, bill.billingCycle),
+    0
+  );
+
+  const totalYearly = totalMonthly * 12;
+
+  const handleAddBill = (newBill: Omit<Bill, "id" | "createdAt" | "updatedAt">) => {
+    const bill: Bill = {
+      ...newBill,
+      id: String(bills.length + 1),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setBills([...bills, bill]);
+    setIsAddDialogOpen(false);
+  };
+
+  const handleDeleteBill = (id: string) => {
+    setBills(bills.filter((b) => b.id !== id));
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">💰</span>
+            <h1 className="text-xl font-semibold">BillBuddy</h1>
+          </div>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Bill
+          </Button>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Monthly Estimate</CardDescription>
+              <CardTitle className="text-3xl">${totalMonthly.toFixed(2)}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Yearly Estimate</CardDescription>
+              <CardTitle className="text-3xl">${totalYearly.toFixed(2)}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Bills Due (14 days)</CardDescription>
+              <CardTitle className="text-3xl">{upcomingBills.length}</CardTitle>
+            </CardHeader>
+          </Card>
         </div>
-      </main>
-    </div>
+
+        {/* Upcoming Bills */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Upcoming Bills
+            </CardTitle>
+            <CardDescription>Bills due in the next 14 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {upcomingBills.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">
+                No bills due in the next 14 days 🎉
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {upcomingBills.map((bill) => {
+                  const daysUntil = getDaysUntilDue(bill.dueDate);
+                  return (
+                    <div
+                      key={bill.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">
+                          {CATEGORY_ICONS[bill.category]}
+                        </span>
+                        <div>
+                          <p className="font-medium">
+                            {bill.provider}
+                            {bill.description && (
+                              <span className="text-gray-500 ml-1">
+                                ({bill.description})
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {CATEGORY_LABELS[bill.category]}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-semibold">${bill.amount.toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">
+                            {format(bill.dueDate, "d MMM")}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`${getUrgencyColor(daysUntil)} text-white`}
+                        >
+                          {daysUntil === 0
+                            ? "Today"
+                            : daysUntil === 1
+                            ? "Tomorrow"
+                            : `${daysUntil} days`}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* All Bills */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LayoutDashboard className="w-5 h-5" />
+              All Bills
+            </CardTitle>
+            <CardDescription>
+              {bills.length} bills tracked
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortedBills.map((bill) => (
+                <BillCard
+                  key={bill.id}
+                  bill={bill}
+                  onDelete={handleDeleteBill}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <AddBillDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAdd={handleAddBill}
+      />
+    </main>
   );
 }
