@@ -1,15 +1,68 @@
 # CLAUDE.md
 
-> Project-level Claude Code file assembled from `_standards/standards/short/`. Fill the project context after copying.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Context
+## Project context
 
-- Project: BillBuddy — household bill tracking and payment reminder app for Australian households
+BillBuddy is a household bill tracking and payment reminder app for Australian households. The MVP is a client-side Next.js app with demo data; the database schema and auth models are defined in Prisma but no API routes or server actions exist yet.
+
 - Stack: Next.js 16, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma 7, PostgreSQL (Vercel Postgres), NextAuth.js 4 (magic link), Bun
 - Owner: Ciaran Quinlan
 - Repository: https://github.com/ciaranquinlan/billbuddy
-- Key commands: `bun install`, `bun run dev`, `bun run build`, `bun run lint`, `bun run start`
-- Key constraints: Use Bun as runtime and package manager (not npm/yarn/pnpm); deploy to Vercel; PostgreSQL via Vercel Postgres
+- Runtime/package manager: Bun (never use npm/yarn/pnpm)
+- Deploy target: Vercel
+
+## Commands
+
+```bash
+bun install          # install dependencies
+bun run dev          # start dev server at http://localhost:3000
+bun run build        # production build
+bun run lint         # ESLint
+bun run start        # start production server
+
+# Database (run after schema changes)
+bunx prisma db push         # push schema to DB without migrations (dev only)
+bunx prisma migrate dev     # create and apply a migration
+bunx prisma generate        # regenerate Prisma client after schema changes
+bunx prisma studio          # open Prisma Studio at http://localhost:5555
+
+# Add shadcn/ui components
+bunx shadcn@latest add <component-name>
+```
+
+No test suite is configured yet.
+
+## Architecture
+
+### Current state
+
+The entire app currently lives in `src/app/page.tsx` as a single client component (`"use client"`) backed by in-memory `DEMO_BILLS` state. There are no API routes, server actions, or database reads. The Prisma schema (`prisma/schema.prisma`) and NextAuth adapter are defined but not wired into any route.
+
+### Data model (`src/types/index.ts`)
+
+This is the single source of truth for frontend domain types. It mirrors the Prisma schema and must stay in sync:
+- `Bill` — core entity: category, provider, amount, billingCycle, dueDate, isAutoPay
+- `BillHistory` — payment record per bill
+- `Household` — frontend household grouping; Prisma also defines `HouseholdMember` for multi-user membership, but it is not yet wired in the UI
+- `CATEGORY_LABELS`, `CATEGORY_ICONS`, `CYCLE_LABELS` — display maps used across components
+
+When adding a new `BillCategory` or `BillingCycle`, update both the Prisma schema enum and the TypeScript union type in `src/types/index.ts`, plus the display maps.
+
+### Component structure
+
+- `src/components/ui/` — shadcn/ui generated components; do not hand-edit
+- `src/components/` — domain components (e.g., `bill-card.tsx`, `add-bill-dialog.tsx`)
+- `src/lib/utils.ts` — `cn()` helper for Tailwind class merging
+
+### Known TODOs in code
+
+- `add-bill-dialog.tsx:88` — `householdId` is hardcoded to `"1"`; needs session context once auth is wired
+- `page.tsx:21` — `DEMO_BILLS` is placeholder; replace with server data fetching once API routes exist
+
+### Australian context
+
+`PROVIDER_SUGGESTIONS` in `add-bill-dialog.tsx` lists real Australian energy, telco, insurance, and streaming providers. Keep suggestions relevant to the Australian market.
 
 ## Coding
 

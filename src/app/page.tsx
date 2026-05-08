@@ -1,146 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   CATEGORY_ICONS, 
   CATEGORY_LABELS, 
-  CYCLE_LABELS,
   type Bill, 
-  type BillCategory 
 } from "@/types";
-import { format, differenceInDays, addDays, isBefore, isAfter } from "date-fns";
-import { Plus, Calendar, LayoutDashboard, TrendingUp, Settings } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { Plus, Calendar, LayoutDashboard, Search } from "lucide-react";
 import { AddBillDialog } from "@/components/add-bill-dialog";
 import { BillCard } from "@/components/bill-card";
-
-// Demo data - replace with real data from API
-const DEMO_BILLS: Bill[] = [
-  {
-    id: "1",
-    householdId: "1",
-    category: "electricity",
-    provider: "AGL",
-    amount: 285.50,
-    billingCycle: "quarterly",
-    dueDate: addDays(new Date(), 5),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    householdId: "1",
-    category: "gas",
-    provider: "AGL",
-    amount: 95.00,
-    billingCycle: "quarterly",
-    dueDate: addDays(new Date(), 5),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    householdId: "1",
-    category: "internet",
-    provider: "Telstra",
-    amount: 99.00,
-    billingCycle: "monthly",
-    dueDate: addDays(new Date(), 12),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    householdId: "1",
-    category: "water",
-    provider: "Sydney Water",
-    amount: 180.00,
-    billingCycle: "quarterly",
-    dueDate: addDays(new Date(), 28),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    householdId: "1",
-    category: "mobile",
-    provider: "Woolworths Mobile",
-    amount: 35.00,
-    billingCycle: "monthly",
-    dueDate: addDays(new Date(), 8),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "6",
-    householdId: "1",
-    category: "mobile",
-    provider: "Telstra",
-    description: "Line 2",
-    amount: 65.00,
-    billingCycle: "monthly",
-    dueDate: addDays(new Date(), 15),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "7",
-    householdId: "1",
-    category: "health_insurance",
-    provider: "GU Health",
-    amount: 320.00,
-    billingCycle: "monthly",
-    dueDate: addDays(new Date(), 3),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "8",
-    householdId: "1",
-    category: "car_insurance",
-    provider: "AAMI",
-    amount: 85.00,
-    billingCycle: "monthly",
-    dueDate: addDays(new Date(), 20),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "9",
-    householdId: "1",
-    category: "roadside",
-    provider: "NRMA",
-    amount: 199.00,
-    billingCycle: "yearly",
-    dueDate: addDays(new Date(), 45),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "10",
-    householdId: "1",
-    category: "subscription",
-    provider: "Netflix",
-    amount: 22.99,
-    billingCycle: "monthly",
-    dueDate: addDays(new Date(), 10),
-    isAutoPay: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+import { calculateMonthlyEquivalent, DEMO_BILLS } from "@/lib/bill-data";
 
 function getDaysUntilDue(dueDate: Date): number {
   return differenceInDays(dueDate, new Date());
@@ -151,17 +25,6 @@ function getUrgencyColor(daysUntil: number): string {
   if (daysUntil <= 3) return "bg-orange-500";
   if (daysUntil <= 7) return "bg-yellow-500";
   return "bg-green-500";
-}
-
-function calculateMonthlyEquivalent(amount: number, cycle: string): number {
-  switch (cycle) {
-    case "weekly": return amount * 4.33;
-    case "fortnightly": return amount * 2.17;
-    case "monthly": return amount;
-    case "quarterly": return amount / 3;
-    case "yearly": return amount / 12;
-    default: return amount;
-  }
 }
 
 export default function Home() {
@@ -207,10 +70,18 @@ export default function Home() {
             <span className="text-2xl">💰</span>
             <h1 className="text-xl font-semibold">BillBuddy</h1>
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Bill
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href="/alternatives">
+                <Search className="h-4 w-4" />
+                Find savings
+              </Link>
+            </Button>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Bill
+            </Button>
+          </div>
         </div>
       </header>
 

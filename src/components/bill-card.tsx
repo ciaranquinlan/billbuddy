@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import {
   type Bill 
 } from "@/types";
 import { format, differenceInDays } from "date-fns";
-import { MoreVertical, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, ExternalLink, Search } from "lucide-react";
 
 interface BillCardProps {
   bill: Bill;
@@ -53,6 +54,7 @@ const COMPARISON_URLS: Record<string, string> = {
 export function BillCard({ bill, onDelete, onEdit }: BillCardProps) {
   const daysUntil = getDaysUntilDue(bill.dueDate);
   const comparisonUrl = COMPARISON_URLS[bill.category];
+  const supportsLiveAlternatives = bill.category === "electricity" || bill.category === "gas";
 
   return (
     <Card className="relative">
@@ -126,7 +128,17 @@ export function BillCard({ bill, onDelete, onEdit }: BillCardProps) {
           )}
         </div>
         <div className="mt-3 pt-3 border-t">
-          <Badge variant="outline">{CATEGORY_LABELS[bill.category]}</Badge>
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant="outline">{CATEGORY_LABELS[bill.category]}</Badge>
+            {supportsLiveAlternatives && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/alternatives">
+                  <Search className="h-4 w-4" />
+                  Find savings
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
